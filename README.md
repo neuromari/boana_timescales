@@ -6,7 +6,7 @@ Rodriguez-Santiago, M., Pouso, P., Hoke, K., & Zornik, E. (2026). Timescales of 
 
 ## How to cite
 
-If you use these data or code, please cite the paper and the archived repository as follow:
+If you use these data or code, please cite the paper and the archived repository as follows:
 
 **paper**
 
