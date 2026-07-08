@@ -1,43 +1,38 @@
-################# B. pulchellus Timescales of Call Variability #################
+################## B. pulchellus Timescales of Call Variability #################
 #### author: M. Rodriguez-Santiago
-####
+#### last update: 7.8.2026
 ####
 #### this script contains all calculations for call-level analyses
-#### need only be called once and stored in environment for entire project
+#### need only be called once and stored in environment
 ####
-#### last update: 3.21.2026
-##
-##
+#### variables:
+##   call_type_relabel: doublet (notes 1 and 2), squeak (note 3), solo (a singular note 1 and 2 not in doublet) 
+##   call_period is difference in onsets between consec calls (regardless call type)
+##   call_type: calls in calls (solo if only 1, two for 2 calls in calls, etc)
+##   call_seq: sequence of call within the calls (0 = solo, 1 = first in calls, 2=second in calls, etc)
+##   series_bin = # of calls within a series
+##   series_seq_cat = within-series category where 
+##     0: solo call
+##     1: part of first call in series
+##     50: part of mid call in series
+##     100: part of last call in series
+####
+####
 #
 #### all packages needed for this script ####
 ##
-library(tidyverse)
+library(dplyr)
 library(tidyr)
-library(cowplot)
-library(ggforce)
-library(moments)
-library(ggpmisc)
-library(lmerTest)
-library(car)
-library(emmeans)
-library(performance)
 library(flextable)
-library(ggpubr)
-library(reshape2)
-library(gridExtra)
-library(grid)
-library(ggpmisc)
-library(officer)
+library(ggplot2)
+library(tibble)
 #
-### ALL CODE FOR CALL TYPE-LEVEL ANALYSES IN SEQUENCE OF PRESENTATION IN PAPER ####
 #
-#### data and variable explanations ####
+#### data ####
 #
-all_calls <- read.csv("all_df_calls_final.csv")
+all_calls <- read.csv("./data/all_df_calls_final.csv")
 colnames(all_calls) 
-# call_period is difference in onsets between consec calls (regardless call type)
-# call_type: calls in calls (solo if only 1, two for 2 calls in calls, etc)
-# call_seq: sequence of call within the calls (0 = solo, 1 = first in calls, 2=second in calls, etc)
+
 all_calls_bin <- all_calls %>%
   arrange(frogID, begin.time.s) %>%  # ensure calls are in time order
   group_by(frogID) %>%
@@ -137,8 +132,8 @@ call_ir %>%
         axis.title.x = element_text(size = 20),
         axis.text.x =  element_text(size = 16),
         axis.text.y = element_text(size = 16))
-ggsave("./v15_graphs/final/calls/int_ratio_ioi_all_seq_cat_1_50.pdf", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
-ggsave("./v15_graphs/final/calls/int_ratio_ioi_all_seq_cat_1_50.svg", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
+ggsave("./analysis/graphs/IRs/int_ratio_ioi_all_seq_cat_1_50.pdf", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
+ggsave("./analysis/graphs/IRs/int_ratio_ioi_all_seq_cat_1_50.svg", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
 #
 #
 ## null ioi ratio 
@@ -202,7 +197,6 @@ ks_resampled_results <- replicate(1000, {
 })
 D_values <- ks_resampled_results[1,]
 p_values <- ks_resampled_results[2,]
-
 # Final statistics 
 final_stats_ioi_resampled <- tibble(
   D_min = min(D_values),
@@ -226,76 +220,14 @@ nulldist_IOI_plot %>%
         axis.title.x = element_text(size = 20),
         axis.text.x =  element_text(size = 16),
         axis.text.y = element_text(size = 16))
-ggsave("./v15_graphs/final/calls/int_ioi_null.pdf", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
-ggsave("./v15_graphs/final/calls/int_ioi_null.svg", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
+ggsave("./analysis/graphs/IRs/int_ioi_null.pdf", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
+ggsave("./analysis/graphs/IRs/int_ioi_null.svg", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
 ##
-#
-#### call interval ratio within series observed and null ####
-#
-call_ir %>%
-  filter(ICI < 10,
-         series_seq_cat %in% c("1", "50"),
-         series_type %in% c("three", "four", "five")) %>%
-  count(series_type, series_seq_cat) %>%
-  pivot_wider(names_from  = series_seq_cat,
-              values_from = n,
-              names_prefix = "bin_",
-              values_fill  = 0) %>%
-  arrange(series_type)
-## observed
-# IR histogram
-call_ir %>%
-  filter(ICI < 10, 
-         series_seq_cat %in% c("1","50"),
-         series_type %in% c("three", "four", "five")) %>%
-  ggplot(aes(x = int_ratio_ioi, fill = series_seq_cat)) +
-  geom_histogram(position = "identity", alpha = 1, bins = 100, 
-                 color = "black",linewidth=0.3) +
-  xlab("observed ioi ratio") +
-  scale_fill_manual(name = "  within\n  series\n position",
-                     values = c("1" = "#e4cee6", "50" = "#cc99cc"),
-                     labels = c("first", "mid")) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(), 
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black", size = .5),
-        axis.title.y = element_text(size = 20),
-        axis.title.x = element_text(size = 20),
-        axis.text.x =  element_text(size = 16),
-        axis.text.y = element_text(size = 16))
-ggsave("./v15_graphs/final/calls/int_ratio_ico_within_seq.pdf", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
-ggsave("./v15_graphs/final/calls/int_ratio_ico_within_seq.svg", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
-#
-##
-call_ir %>%
-  filter(ICI < 10,
-         (series_type == "three" & series_seq == 1) |
-           (series_type == "four"  & series_seq %in% c(1, 2)) |
-           (series_type == "five"  & series_seq %in% c(1, 2, 3))) %>%
-  mutate(series_seq = factor(series_seq)) %>%
-  ggplot(aes(x = int_ratio_ioi, fill = series_seq)) +
-  geom_histogram(position = "identity", alpha = 1, bins = 100,
-                 color = "black", linewidth = 0.3) +
-  xlab("observed ioi ratio") +
-  scale_fill_manual(name= "  within\n  series\n position",
-    values = c("1" = "#e4cee6", "2" = "#cc99cc", "3" = "#9966aa"),
-    labels = c("1" = "first", "2" = "second", "3" = "third")) +
-  theme(panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.background = element_blank(),
-    axis.line        = element_line(colour = "black", size = .5),
-    axis.title.y     = element_text(size = 20),
-    axis.title.x     = element_text(size = 20),
-    axis.text.x      = element_text(size = 16),
-    axis.text.y      = element_text(size = 16))
-ggsave("./v15_graphs/final/calls/int_ratio_ico_within_seq_nopenul.pdf", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
-ggsave("./v15_graphs/final/calls/int_ratio_ico_within_seq_nopenul.svg", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
-#
 #
 #### call interval ratio within male ####
 #
 # ICI ratios
-output_dir <- "./v15_graphs/final/calls/histograms/ratios/"
+output_dir <- "./analysis/graphs/histograms/ratios/"
 # Fixed histogram breaks for comparability
 breaks_fixed <- seq(0, 10, length.out = 101)  # 100 bins
 # Vertical line values per frogID
@@ -309,36 +241,6 @@ all_groups <- call_ir %>%
   filter(!is.na(ICI), ICI < 10) %>%
   group_by(frogID) %>%
   group_split()
-
-# Compute maximum count across all males for consistent y-axis
-max_count <- max(sapply(all_groups, function(df) {
-  hist(df$int_ratio_ici, breaks = breaks_fixed, plot = FALSE)$counts
-}))
-
-# Loop over each male
-for (df in all_groups) {
-  frog_id <- df$frogID[1]
-  
-  # Lookup the vertical line x-value
-  vline_x <- vline_values$vline_x[vline_values$frogID == frog_id]
-  
-  p_hist <- ggplot(df, aes(x = int_ratio_ici)) +
-    geom_histogram(position = "identity", alpha = 0.6, bins = 100) +
-    xlab("observed ici ratio") +
-    scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
-                       labels = c("0", "0.25", "0.5", "0.75", "1")) +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(), 
-          panel.background = element_blank(), 
-          axis.line = element_line(colour = "black", size = .5),
-          axis.title.y = element_text(size = 20),
-          axis.title.x = element_text(size = 20),
-          axis.text.x =  element_text(size = 16),
-          axis.text.y = element_text(size = 16))
-  
-  pdf_file <- paste0(output_dir, "hist_ratio_ici_frog_", frog_id, ".pdf")
-  ggsave(pdf_file, plot = p_hist, width = 7, height = 3.55, dpi = 300, limitsize = FALSE)
-}
 #
 # IOI
 # Compute maximum count across all males for consistent y-axis
@@ -370,45 +272,6 @@ for (df in all_groups) {
   pdf_file <- paste0(output_dir, "hist_ratio_ioi_frog_", frog_id, ".pdf")
   ggsave(pdf_file, plot = p_hist, width = 7, height = 3.55, dpi = 300, limitsize = FALSE)
 }
-#
-#
-## graph IR histogram colored by calls order PER MALE
-#
-frog_ids <- unique(call_ir$frogID)
-for(frog in frog_ids) {
-  
-  frog_data <- call_ir %>%
-    filter(frogID == frog)
-  
-  p <- frog_data %>%
-    ggplot(aes(x = int_ratio_ioi, fill = series_seq_cat)) +
-    geom_histogram(position = "identity", alpha = 0.6, bins = 100) +
-    xlab("observed ioi ratio") +
-    ggtitle(paste("Frog ID:", frog)) +
-    scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
-                       labels = c("0", "0.25", "0.5", "0.75", "1")) +
-    scale_fill_manual(values = callsSeqCatMid,
-                      name = "call order",
-                      breaks = c("1", "50", "100", "0"),
-                      labels = c("1st", "mid", "last", "solo")) +
-    scale_color_manual(values = callsSeqCatMid,
-                       name = "call order",
-                       breaks = c("1", "50", "100", "0"),
-                       labels = c("1st", "mid", "last", "solo")) +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(), 
-          panel.background = element_blank(), 
-          axis.line = element_line(colour = "black", size = .5),
-          axis.title.y = element_text(size = 20),
-          axis.title.x = element_text(size = 20),
-          axis.text.x = element_text(size = 16),
-          axis.text.y = element_text(size = 16),
-          plot.title = element_text(size = 18, hjust = 0.5))
-  
-  ggsave(paste0("./v15_graphs/calls/histograms/int_ratio_ioi_call_seq_", frog, ".pdf"), 
-         plot = p, width = 7, height = 3.5, dpi = 300, limitsize = FALSE)
-}
-#
 #
 #### CV calcs: within and between males in bouts ####
 #
@@ -489,7 +352,7 @@ cvw_ft_calls <- cvw_table_data_calls %>%
   align(j = "feature", align = "left", part = "body") %>%
   autofit()
 cvw_ft_calls
-save_as_docx(cvw_ft_calls, path = "./v15_graphs/final/tables/CVw_table_calls.docx")
+save_as_docx(cvw_ft_calls, path = "./analysis/graphs/tables/CVw_table_calls.docx")
 #
 #
 # between
@@ -522,7 +385,7 @@ cvb_ft_calls <- cvb_table_data_calls %>%
   align(j = "feature", align = "left", part = "body") %>%
   autofit()
 cvb_ft_calls
-save_as_docx(cvb_ft_calls, path = "./v15_graphs/final/tables/CVb_table_calls.docx")
+save_as_docx(cvb_ft_calls, path = "./analysis/graphs/tables/CVb_table_calls.docx")
 #
 #### CV calcs: within and between males in series ####
 #
@@ -605,7 +468,7 @@ cvw_ft_calls_series <- cvw_table_data_calls_series %>%
   align(j = "feature", align = "left", part = "body") %>%
   autofit()
 cvw_ft_calls_series
-save_as_docx(cvw_ft_calls_series, path = "./v15_graphs/final/tables/CVw_table_calls_in_series.docx")
+save_as_docx(cvw_ft_calls_series, path = "./analysis/graphs/tables/CVw_table_calls_in_series.docx")
 
 # between
 cvb_table_data_calls_series <- calls_cvb_series_label %>%
@@ -637,7 +500,7 @@ cvb_ft_calls_series <- cvb_table_data_calls_series %>%
   align(j = "feature", align = "left", part = "body") %>%
   autofit()
 cvb_ft_calls_series
-save_as_docx(cvb_ft_calls_series, path = "./v15_graphs/final/tables/CVb_table_calls_in_series.docx")
+save_as_docx(cvb_ft_calls_series, path = "./analysis/graphs/tables/CVb_table_calls_in_series.docx")
 #
 #### CV calcs: within and between males in series by seq order ####
 #
@@ -721,7 +584,7 @@ cvw_ft_calls_seq <- cvw_table_data_calls_seq %>%
   align(j = "feature", align = "left", part = "body") %>%
   autofit()
 cvw_ft_calls_seq
-save_as_docx(cvw_ft_calls_seq, path = "./v15_graphs/final/tables/CVw_table_calls_in_series_seq.docx")
+save_as_docx(cvw_ft_calls_seq, path = "./analysis/graphs/tables/CVw_table_calls_in_series_seq.docx")
 
 # between
 cvb_table_data_calls_seq <- calls_cvb_seq_label %>%
@@ -755,135 +618,5 @@ cvb_ft_calls_seq <- cvb_table_data_calls_seq %>%
   align(j = "feature", align = "left", part = "body") %>%
   autofit()
 cvb_ft_calls_seq
-save_as_docx(cvb_ft_calls_seq, path = "./v15_graphs/final/tables/CVb_table_calls_in_series_seq.docx")
-#
-
-
-
-
-
-
-notes_cvw_series <- notes_ir %>%
-  group_by(frogID, note_type_relabel, series_seq_cat) %>%
-  filter(INI < 10,
-         series_seq_cat %in% c("1","50"),
-         series_type %in% c("three", "four", "five"),
-         note_type_relabel %in% c("1", "2")) %>%
-  summarise(n = n(),
-            notesdur.mean = mean(note.dur.s, na.rm = TRUE),
-            notesdur.sd = sd(note.dur.s, na.rm = TRUE),
-            notesdur.sem = sem(note.dur.s),
-            notesdur.CVw = (notesdur.sd / notesdur.mean) * 100,
-            notesini.mean = mean(INI, na.rm = TRUE),
-            notesini.sd = sd(INI, na.rm = TRUE),
-            notesini.sem = sem(INI),
-            notesini.CVw = (notesini.sd / notesini.mean) * 100,
-            notesino.mean = mean(note.period, na.rm = TRUE),
-            notesino.sd = sd(note.period, na.rm = TRUE),
-            notesino.sem = sem(note.period),
-            notesino.CVw = (notesino.sd / notesino.mean) * 100,
-            notesmeandom.mean = mean(meandom, na.rm = TRUE),
-            notesmeandom.sd = sd(meandom, na.rm = TRUE),
-            notesmeandom.sem = sem(meandom),
-            notesmeandom.CVw = (notesmeandom.sd / notesmeandom.mean) * 100,
-            .groups = "drop")
-notes_cvw_long_series <- notes_cvw_series %>%
-  pivot_longer(cols = -c(frogID, note_type_relabel, series_seq_cat, n),
-               names_to = c("feature", ".value"),
-               names_pattern = "(.+)\\.(mean|sd|sem|CVw)$") %>%
-  mutate(dynamics = case_when(CVw >= 12 ~ 'dynamic',
-                              CVw >= 5 ~ 'intermediate',
-                              CVw >= 0 ~ 'static'))
-notes_cvb_series <- notes_cvw_long_series %>%
-  group_by(series_seq_cat, feature, note_type_relabel) %>%
-  summarize(n = n(),
-            grand_mean = mean(mean, na.rm = TRUE),
-            grand_sd = sd(mean, na.rm = TRUE),
-            grand_sem = sem(mean),
-            grand_CVw = mean(CVw, na.rm = TRUE),
-            CVb = (grand_sd / grand_mean) * 100,
-            .groups = "drop")
-notes_cvb_series_label <- notes_cvb_series %>%
-  mutate(dynamics_w = case_when(grand_CVw >= 12 ~ 'dynamic',
-                                grand_CVw >= 5 ~ 'intermediate',
-                                grand_CVw >= 0 ~ 'static'),
-         dynamics_b = case_when(CVb >= 12 ~ 'dynamic',
-                                CVb >= 5 ~ 'intermediate',
-                                CVb >= 0 ~ 'static'),
-         CV_ratio = CVb / grand_CVw)
-calls_plot_seq <- calls_cvb_series_label %>%
-  mutate(feature_label = case_when(
-    feature == "callsdur" ~ "call dur",
-    feature == "callsici" ~ "ICI",
-    feature == "callsioi" ~ "ICO"))
-notes_plot_seq <- notes_cvb_series_label %>%
-  filter((feature %in% c("notesdur", "notesmeandom")) |
-           (feature %in% c("notesini", "notesino") & note_type_relabel == "1")) %>%
-  mutate(feature_label = case_when(
-    feature == "notesdur" & note_type_relabel == "1" ~ "dur N1",
-    feature == "notesdur" & note_type_relabel == "2" ~ "dur N2",
-    feature == "notesini" & note_type_relabel == "1" ~ "INI",
-    feature == "notesino" & note_type_relabel == "1" ~ "INO",
-    feature == "notesmeandom" & note_type_relabel == "1" ~ "DF N1",
-    feature == "notesmeandom" & note_type_relabel == "2" ~ "DF N2"))
-combined_seq <- bind_rows(calls_plot_seq, notes_plot_seq) %>%
-  mutate(series_label = case_when(
-    series_seq_cat == "1" ~ "first in series",
-    series_seq_cat == "50" ~ "mid series"),
-    feature_label = factor(feature_label, levels = c("call dur", "ICI", "ICO", "dur N1", "dur N2", "INI", "INO", "DF N1", "DF N2")))
-label_colors <- c("call dur" = "#9f839d",
-                  "ICI" = "#cfa9d1",
-                  "ICO" = "#e4cee6",
-                  "dur N1" = "#839c7e",
-                  "dur N2" = "#839c7e",
-                  "INI" = "#99cc99",
-                  "INO" = "#cde4cc",
-                  "DF N1" = "#a8c4a0",
-                  "DF N2" = "#a8c4a0")
-label_shapes <- c("call dur" = 16,
-                  "ICI" = 16,
-                  "ICO" = 16,
-                  "dur N1" = 17,
-                  "dur N2" = 15,
-                  "INI" = 17,
-                  "INO" = 17,
-                  "DF N1" = 17,
-                  "DF N2" = 15)
-p <- ggplot(combined_seq, aes(x = feature_label, y = CV_ratio, color = feature_label, shape = feature_label)) +
-  geom_point(size = 7, alpha = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", alpha = 0.7) +
-  facet_wrap(~series_label, scales = "free_x") +
-  xlab("") +
-  ylab("CVb / CVw") +
-  scale_color_manual(values = label_colors) +
-  scale_shape_manual(values = label_shapes) +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(),
-        axis.line = element_line(colour = "black", size = .3),
-        legend.position = "none",
-        axis.title.y = element_text(size = 16),
-        axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
-        axis.text.y = element_text(size = 12),
-        strip.text = element_text(size = 14),
-        strip.placement = "outside",
-        strip.background = element_blank())
-
-g <- ggplot_gtable(ggplot_build(p))
-strips <- which(grepl('strip-b', g$layout$name))
-
-for(i in seq_along(strips)) {
-  strip_grob <- g$grobs[[strips[i]]]
-  if(i == 1) {
-    strip_grob$grobs[[1]]$children[[1]]$gp$fill <- "#cccccc"
-  } else {
-    strip_grob$grobs[[1]]$children[[1]]$gp$fill <- "#666666"
-  }
-  g$grobs[[strips[i]]] <- strip_grob
-}
-
-grid::grid.draw(g)
-ggsave("./v15_graphs/CV/CVratio_by_series_position.pdf", width=10, height=5, dpi = 300, limitsize = FALSE)
-ggsave("./v15_graphs/CV/CVratio_by_series_position.svg", width=10, height=5, dpi = 300, limitsize = FALSE)
-#
+save_as_docx(cvb_ft_calls_seq, path = "./analysis/graphs/tables/CVb_table_calls_in_series_seq.docx")
 #

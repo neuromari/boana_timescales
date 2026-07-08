@@ -1,6 +1,6 @@
 ################## B. pulchellus Timescales of Call Variability #################
 #### author: M. Rodriguez-Santiago
-#### last update: 3.21.2026
+#### last update: 7.8.2026
 ####
 #### this script contains all calculations for note-level analyses
 #### need only be called once and stored in environment
@@ -27,18 +27,11 @@
 #
 #### packages needed to run this code ####
 #
+library(dplyr)
 library(tidyr)
 library(flextable)
-library(ggpubr)
-library(lmerTest)
-library(car)
-library(emmeans)
-library(performance)
-library(reshape2)
-library(gridExtra)
-library(grid)
-library(ggpmisc)
-library(cowplot)
+library(ggplot2)
+library(tibble)
 #
 #
 #### data import & tidy ####
@@ -219,148 +212,6 @@ nulldist_ino %>%
         axis.text.y = element_text(size = 16))
 ggsave("./analysis/graphs/IRs/int_ratio_null_ino.pdf", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
 ggsave("./analysis/graphs/IRs/int_ratio_null_ino.svg", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
-#
-#### note interval ratios by seq order within series####
-#
-## observed
-#
-#ino
-notes_ir %>%
-  filter(INI < 10, 
-         series_seq_cat %in% c("1","50"),
-         series_type %in% c("three", "four", "five"),
-         note_type_relabel %in% c("1")) %>%
-  ggplot(aes(x = int_ratio_ino, fill = series_seq_cat)) +
-  geom_histogram(position = "identity", alpha = 1, bins = 100, 
-                 color = "black",linewidth=0.3) +
-  xlab("observed ino ratio") +
-  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
-                     labels = c("0", "0.25", "0.5", "0.75", "1")) +
-  scale_fill_manual(name = "  within\n  series\n position",
-                     values = c("1" = "#bcdab7", "50" = "#336633"),
-                     labels = c("1st", "mid")) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(), 
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black", size = .5),
-        axis.title.y = element_text(size = 20),
-        axis.title.x = element_text(size = 20),
-        axis.text.x =  element_text(size = 16),
-        axis.text.y = element_text(size = 16))
-ggsave("./analysis/graphs/IRs/int_ratio_ino_within_seq.pdf", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
-ggsave("./analysis/graphs/IRs/int_ratio_ino_within_seq.svg", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
-#
-#### note interval ratios within male ####
-#
-##
-output_dir_notes <- "./analysis/graphs/IRs/males/"
-breaks_fixed <- seq(0, 1, length.out = 101)  # 100 bins
-all_groups <- notes_ir %>%
-  filter(is.finite(int_ratio_ino), !is.na(int_ratio_ino)) %>%
-  group_by(frogID) %>%
-  group_split()
-# Compute maximum count across all males for consistent y-axis
-max_count <- max(sapply(all_groups, function(df) {
-  hist(df$int_ratio_ino, breaks = breaks_fixed, plot = FALSE)$counts
-}))
-
-for (df in all_groups) {
-  frog_id <- df$frogID[1]
-  
-  p_hist <- ggplot(df, aes(x = int_ratio_ino)) +
-    geom_histogram(breaks = breaks_fixed,
-                   fill = "gray", color = "black", alpha = 0.6) +
-    ylab("count") +
-    scale_x_continuous(limits = c(0, 1),
-                       breaks = c(0, 0.25, 0.5, 0.75, 1),
-                       labels = c("0", "0.25", "0.5", "0.75", "1")) +
-    scale_y_continuous(limits = c(0, max_count)) +
-    theme(
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank(),
-      panel.background = element_blank(),
-      axis.line = element_line(colour = "black", size = 0.5),
-      axis.title.y = element_text(size = 16),
-      axis.title.x = element_blank(),
-      axis.text.x = element_text(size = 12),
-      axis.text.y = element_text(size = 12)
-    )
-  
-  pdf_file <- paste0(output_dir_notes, "hist_ino_ratio_frog_", frog_id, ".pdf")
-  ggsave(pdf_file, plot = p_hist, width = 10, height = 5, dpi = 300, limitsize = FALSE)
-}
-##
-#### within male INO histograms ####
-#
-## this code identifies trophs in the first distribution bound per male within bouts
-## plots all males with their distinct first distribution min (troph) as vertical lines
-# Fixed histogram breaks for comparability
-breaks_fixed <- seq(0, 10, length.out = 101)  # 100 bins
-# Vertical line values per frogID
-vline_values <- data.frame(
-  frogID = c(1281, 1303, 1314, 1325, 1346, 1552, 1573, 1594, 1605, 1626, 
-             1682, 1741, 1752, 1763, 1774, 1785, 1806, 1817),
-  vline_x = c(0.41, 0.57, 0.57, 0.32, 0.44, 0.6, 0.64, 0.7, 0.38, 0.76,
-              0.46, 0.36, 0.41, 0.4, 0.65, 0.41, 0.41, 0.36))
-all_groups <- all_notes_eco %>%
-  filter(!is.na(note.period), note.period < 5) %>%
-  group_by(frogID) %>%
-  group_split()
-
-# Compute maximum count across all males for consistent y-axis
-max_count <- max(sapply(all_groups, function(df) {
-  hist(df$note.period, breaks = breaks_fixed, plot = FALSE)$counts
-}))
-
-# Loop over each male
-for (df in all_groups) {
-  frog_id <- df$frogID[1]
-  
-  # Lookup the vertical line x-value
-  vline_x <- vline_values$vline_x[vline_values$frogID == frog_id]
-  
-  p_hist <- ggplot(df, aes(x = note.period)) +
-    geom_histogram(breaks = breaks_fixed,
-                   fill = "gray", color = "black", alpha = 0.6) +
-    geom_vline(xintercept = vline_x, color = "#A16928", linetype = "dashed", size = 0.3) +
-    ylab("count") +
-    scale_x_continuous(limits = c(0, 5),
-                       breaks = seq(0, 5, by = 1)) +
-    scale_y_continuous(limits = c(0, max_count)) +
-    theme(
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank(),
-      panel.background = element_blank(),
-      axis.line = element_line(colour = "black", size = 0.3),
-      axis.title.y = element_text(size = 16),
-      axis.title.x = element_blank(),
-      axis.text.x = element_blank(),
-      axis.text.y = element_text(size = 12))
-  
-  p_box <- ggplot(df, aes(x = note.period, y = "")) +
-    geom_boxplot(outlier.alpha = 0, width = 0.5) +
-    geom_point(position = position_jitter(height = 0.1), alpha = 0.3) +
-    geom_vline(xintercept = vline_x, color = "#A16928", 
-               linetype = "dashed", size = 0.5) +
-    xlab("ino (s)") +
-    scale_x_continuous(limits = c(0, 5),
-                       breaks = seq(0, 5, by = 1)) +
-    theme(
-      panel.grid.major = element_blank(), 
-      panel.grid.minor = element_blank(), 
-      panel.background = element_blank(), 
-      axis.line = element_line(colour = "black", size = .3),
-      axis.title.y = element_blank(),
-      axis.title.x = element_text(size = 16),
-      axis.text.x = element_text(size = 12),
-      axis.text.y = element_blank(),
-      legend.position = "none")
-  
-  combo_plot <- plot_grid(p_hist, p_box, ncol = 1, align = "v", rel_heights = c(2,1))
-  
-  pdf_file <- paste0(output_dir_notes, "hist_ino_frog_", frog_id, ".pdf")
-  ggsave(pdf_file, plot = combo_plot, width = 10, height = 5, dpi = 300, limitsize = FALSE)
-}
 #
 #### CV calcs: within and between males in bouts ####
 #

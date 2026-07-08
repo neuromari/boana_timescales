@@ -1,31 +1,31 @@
 ################## B. pulchellus Timescales of Call Variability #################
 #### author: M. Rodriguez-Santiago
-####
+#### last update: 7.8.2026
 ####
 #### this script contains all calculations for series-level analyses
-#### need only be called once and stored in environment for entire project
+#### need only be called once and stored in environment
 ####
-#### last update: 3.21.2026
-##
-##
+#### variables:
+##   series_bin = # of calls within a series
+##   series_seq_cat = within-series category where 
+##     0: solo call
+##     1: part of first call in series
+##     50: part of mid call in series
+##     100: part of last call in series
+####
+####
 #
 #### packages ####
 #
-library(tidyverse)
-library(cowplot)
-library(ggforce)
-library(moments)
-library(ggpmisc)
-library(lmerTest)
-library(car)
-library(emmeans)
+library(dplyr)
+library(tidyr)
 library(flextable)
-library(ggpubr)
-library(ggeffects)
+library(ggplot2)
+library(tibble)
 #
 #### data import and tidy ####
 #
-all_series <- read.csv("all_df_series_final.csv")
+all_series <- read.csv("./data/all_df_series_final.csv")
 colnames(all_series)
 all_series_bin <- all_series %>%
   arrange(frogID, begin.time.s) %>%
@@ -62,10 +62,7 @@ all_series_bin_10 <- all_series_bin %>%
   mutate(series_type = factor(series_bin, 
                               levels = c("1", "2", "3", "4+"),
                               labels = c("solo", "two", "three", "4+")))
-#
 # eco variables
-eco_var <- read.csv("eco_variables_2020.csv")
-colnames(eco_var)
 all_series_eco <- left_join(all_series_bin_10, eco_var, by = "frogID")
 colnames(all_series_eco)
 #
@@ -125,8 +122,8 @@ series_ir %>%
         axis.title.x = element_text(size = 20),
         axis.text.x =  element_text(size = 16),
         axis.text.y = element_text(size = 16))
-ggsave("./v15_graphs/final/series/int_ratio_iso_all.pdf", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
-ggsave("./v15_graphs/final/series/int_ratio_iso_all.svg", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
+ggsave("./analysis/graphs/IRs/int_ratio_iso_all.pdf", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
+ggsave("./analysis/graphs/IRs/int_ratio_iso_all.svg", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
 #
 #
 ## null isi ratio 
@@ -156,7 +153,6 @@ nulldist_ISO_plot <- tibble(
   filter(row_number() %% 2 == 1) %>%
   dplyr::ungroup() %>%
   filter(is.finite(null_int_ratio), !is.na(null_int_ratio))
-
 # Generate larger null pool for resampling tests (100,000 samples like the seal paper)
 set.seed(1)
 null_iso_large <- lapply(iso_pool, function(v) replicate(100000, { x <- sample(v, 2, replace = TRUE); x }))
@@ -208,8 +204,8 @@ nulldist_ISO_plot %>%
         axis.title.x = element_text(size = 20),
         axis.text.x =  element_text(size = 16),
         axis.text.y = element_text(size = 16))
-ggsave("./v15_graphs/final/series/int_iso_null.pdf", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
-ggsave("./v15_graphs/final/series/int_iso_null.svg", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
+ggsave("./analysis/graphs/IRs/int_iso_null.pdf", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
+ggsave("./analysis/graphs/IRs/int_iso_null.svg", width=6, height=3.5, dpi = 300, limitsize = FALSE) 
 #
 #
 #### calculation of series feature CVs between and within males ####
@@ -290,7 +286,7 @@ cvw_ft_series <- cvw_table_data_series %>%
   align(j = "feature", align = "left", part = "body") %>%
   autofit()
 cvw_ft_series
-save_as_docx(cvw_ft_series, path = "./v15_graphs/final/tables/CVw_table_series.docx")
+save_as_docx(cvw_ft_series, path = "./analysis/graphs/tables/CVw_table_series.docx")
 
 cvb_table_data_series <- series_cvb_label %>%
   select(feature, n, grand_mean, grand_sd, grand_CVw, CVb, CV_ratio)
@@ -321,5 +317,5 @@ cvb_ft_series <- cvb_table_data_series %>%
   align(j = "feature", align = "left", part = "body") %>%
   autofit()
 cvb_ft_series
-save_as_docx(cvb_ft_series, path = "./v15_graphs/final/tables/CVb_table_series.docx")
+save_as_docx(cvb_ft_series, path = "./analysis/graphs/tables/CVb_table_series.docx")
 #

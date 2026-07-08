@@ -154,4 +154,3 @@ find_boundaries <- function(counts, breaks, trough) {
     dist2_max = if (length(rn)) breaks[max(rn) + 1] else NA,
     trough    = trough)
 }
-#
