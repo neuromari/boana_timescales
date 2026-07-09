@@ -14,9 +14,9 @@ Rodriguez-Santiago, M., Pouso, P., Hoke, K., & Zornik, E. (2026). Timescales of 
 
 **code**
 
-Rodriguez-Santiago, M. (2026). **boana_timescales: Code and data for *Timescales of call variability in a South American treefrog*** (Version 1.0.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.21269687
+Rodriguez-Santiago, M. (2026). **boana_timescales: Code and data for *Timescales of call variability in a South American treefrog*** (Version 1.0.0) [Data set]. Zenodo. <https://doi.org/10.5281/zenodo.21269687>
 
-Repository: https://github.com/neuromari/boana_timescales
+Repository: <https://github.com/neuromari/boana_timescales>
 
 ## Contents
 
